@@ -1,4 +1,3 @@
-# chat-app-backend
 # Chat Backend Application
 
 ## About Project
