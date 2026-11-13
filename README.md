@@ -8,8 +8,6 @@ In this project, users can create one-to-one chats, send messages, get messages,
 
 I have used PostgreSQL to store users, chats, and chat members. I have used Firebase Firestore to store messages, read receipts, and last-seen details.
 
-I have used raw SQL queries instead of an ORM.
-
 ## Technologies Used
 
 - Node.js
