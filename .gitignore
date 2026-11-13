@@ -1,0 +1,12 @@
+cat > .gitignore << 'EOF'
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.json.key
+serviceAccount*.json
+*firebase*adminsdk*.json
+.DS_Store
+EOF
+src/config/chat-backend-46a18-firebase-adminsdk-fbsvc-84e4773245.json
