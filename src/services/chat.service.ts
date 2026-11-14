@@ -1,4 +1,3 @@
-
 import pool from "../config/database";
 
 function isValidId(id: string): boolean {

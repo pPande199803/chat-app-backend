@@ -1,4 +1,3 @@
-
 import type { Request, Response } from "express";
 import { getUserChats } from "../services/user.service";
 
