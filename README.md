@@ -4,7 +4,7 @@
 
 I have created a chat backend application using Node.js, TypeScript, PostgreSQL, and Firebase Firestore.
 
-In this project, users can create one-to-one chats, send messages, get messages, mark messages as read, and update their last-seen status.
+In this project, users can create one-to-one chats and group chats, send messages, get messages, mark messages as read, update their last-seen status, edit messages, and delete messages.
 
 I have used PostgreSQL to store users, chats, and chat members. I have used Firebase Firestore to store messages, read receipts, and last-seen details.
 
@@ -23,7 +23,7 @@ I have used PostgreSQL to store users, chats, and chat members. I have used Fire
 
 ### PostgreSQL
 
-I have created three tables:
+I have created three main tables:
 
 **1. users**
 
@@ -31,11 +31,11 @@ Stores user details like ID, name, email, and created date.
 
 **2. chats**
 
-Stores chat details like chat ID, user A, user B, and created date.
+Stores chat details like chat ID, user A, user B, chat type, group name, created by, and created date.
 
 **3. chat_members**
 
-Stores which users belong to which chat.
+Stores which users belong to which chat. I use this table for both one-to-one and group chats.
 
 ### Firebase Firestore
 
@@ -60,6 +60,10 @@ CREATE DATABASE chat_app;
 ```
 
 Create the `users`, `chats`, and `chat_members` tables in the database.
+
+The `chats` table also includes group chat fields such as `chat_type`, `group_name`, and `created_by`.
+
+For group chat support, `user_a` must allow NULL values because group chats use `chat_members` to store their members.
 
 ### 3. Configure environment variables
 
@@ -110,7 +114,7 @@ Base URL:
 http://localhost:5000
 ```
 
-### 1. Create Chat
+### 1. Create One-to-One Chat
 
 **POST** `/chat/create`
 
@@ -127,7 +131,46 @@ Request body:
 
 It checks whether both users exist. If a chat already exists between them, it returns the existing chat. Otherwise, it creates a new chat.
 
-### 2. Send Message
+### 2. Create Group Chat
+
+**POST** `/chat/group/create`
+
+I use this API to create a group chat with multiple users.
+
+Request body:
+
+```json
+{
+  "groupName": "Development Team",
+  "createdBy": "1",
+  "members": ["2", "3"]
+}
+```
+
+It checks whether all users exist. It creates a group chat and adds the creator and given members to the `chat_members` table.
+
+### 3. Add Members to Group Chat
+
+**POST** `/chat/group/:chatId/members`
+
+I use this API to add new members to an existing group chat.
+
+Example:
+
+`POST /chat/group/4/members`
+
+Request body:
+
+```json
+{
+  "addedBy": "1",
+  "userIds": ["5", "6"]
+}
+```
+
+It checks whether the group exists and whether the user adding members is the group creator. It also checks whether the users exist and adds only new members to the group.
+
+### 4. Send Message
 
 **POST** `/chat/:chatId/message/send`
 
@@ -148,7 +191,7 @@ Request body:
 
 Before sending the message, I check whether the sender is a member of that chat. If the user is a member, I save the message in Firestore.
 
-### 3. Get Messages
+### 5. Get Messages
 
 **GET** `/chat/:chatId/messages?userId=1&limit=50`
 
@@ -158,9 +201,9 @@ Example:
 
 `GET /chat/1/messages?userId=1&limit=50`
 
-It checks the user's membership and returns the latest messages in chronological order.
+It checks the user's membership and returns the messages in chronological order. I use a limit to control how many messages are returned.
 
-### 4. Mark Message as Read
+### 6. Mark Message as Read
 
 **POST** `/chat/:chatId/message/:messageId/read`
 
@@ -180,7 +223,7 @@ Request body:
 
 It checks the user's membership and saves the read receipt in Firestore with the read timestamp.
 
-### 5. Update Last Seen
+### 7. Update Last Seen
 
 **POST** `/chat/:chatId/lastseen`
 
@@ -201,7 +244,7 @@ Request body:
 
 It checks the user and message, then updates the last-seen details in Firestore.
 
-### 6. Get User Chats
+### 8. Get User Chats
 
 **GET** `/user/:userId/chats`
 
@@ -213,27 +256,60 @@ Example:
 
 It uses PostgreSQL joins to get all chats in which the user is a member.
 
+### 9. Edit Message
+
+**PUT** `/chat/:chatId/message/:messageId/edit`
+
+I use this API to edit an existing message.
+
+Example:
+
+`PUT /chat/4/message/message_id_1/edit`
+
+Request body:
+
+```json
+{
+  "senderId": "1",
+  "text": "This is my updated message"
+}
+```
+
+It checks whether the user is a member of the chat and whether the message belongs to that user. If both conditions are satisfied, it updates the message text in Firestore and saves the edited status and edited timestamp.
+
+### 10. Delete Message
+
+**DELETE** `/chat/:chatId/message/:messageId/delete`
+
+I use this API to delete an existing message.
+
+Example:
+
+`DELETE /chat/4/message/message_id_1/delete`
+
+Request body:
+
+```json
+{
+  "senderId": "1"
+}
+```
+
+It checks whether the user is a member of the chat and whether the message belongs to that user. If both conditions are satisfied, it deletes the message and its read receipts from Firestore.
+
 ## API Testing
 
-I have used Postman to test all the API endpoints.
+I have used Postman to test the API endpoints.
 
 | Method | API | Purpose |
 |---|---|---|
-| POST | `/chat/create` | Create chat |
+| POST | `/chat/create` | Create one-to-one chat |
+| POST | `/chat/group/create` | Create group chat |
+| POST | `/chat/group/:chatId/members` | Add group members |
 | POST | `/chat/:chatId/message/send` | Send message |
 | GET | `/chat/:chatId/messages` | Get messages |
-| POST | `/chat/:chatId/message/:messageId/read` | Mark as read |
+| POST | `/chat/:chatId/message/:messageId/read` | Mark message as read |
 | POST | `/chat/:chatId/lastseen` | Update last seen |
 | GET | `/user/:userId/chats` | Get user chats |
-
-## Project Features
-
-- Create one-to-one chat between users.
-- Send messages.
-- Get chat messages.
-- Check chat member before sending messages.
-- Mark messages as read.
-- Update last-seen status.
-- Get all chats of a user.
-- Store user and chat details in PostgreSQL.
-- Store messages and read information in Firebase Firestore.
+| PUT | `/chat/:chatId/message/:messageId/edit` | Edit message |
+| DELETE | `/chat/:chatId/message/:messageId/delete` | Delete message |
