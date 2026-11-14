@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { createOrGetChat } from "../services/chat.service";
+import * as chatService from "../services/chat.service";
 
 export async function createChat(
     req: Request,
@@ -45,3 +46,47 @@ export async function createChat(
         });
     }
 }
+
+
+export const createGroupChatController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { groupName, createdBy, members } = req.body;
+
+    if (
+      typeof groupName !== "string" ||
+      !groupName.trim() ||
+      typeof createdBy !== "string" ||
+      !Array.isArray(members) ||
+      !members.every((id: unknown) => typeof id === "string")
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid request data"
+      });
+      return;
+    }
+
+    const result = await chatService.createGroupChat(
+      groupName.trim(),
+      createdBy,
+      members
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Group chat created successfully",
+      data: result
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Something went wrong";
+
+    res.status(400).json({
+      success: false,
+      message
+    });
+  }
+};

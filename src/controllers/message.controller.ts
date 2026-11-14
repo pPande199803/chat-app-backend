@@ -4,6 +4,7 @@ import { sendMessage } from "../services/message.service";
 import { getMessages } from "../services/message.service";
 import { markMessageRead } from "../services/message.service";
 import { updateLastSeen } from "../services/message.service";
+import * as messageService from "../services/message.service";
 
 export async function sendChatMessage(
     req: Request,
@@ -260,3 +261,112 @@ export async function lastSeen(
         });
     }
 }
+
+
+export const editMessageController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { chatId, messageId } = req.params;
+    const { senderId, text } = req.body;
+
+    if (
+      typeof chatId !== "string" ||
+      !chatId.trim() ||
+      typeof messageId !== "string" ||
+      !messageId.trim() ||
+      typeof senderId !== "string" ||
+      typeof text !== "string" ||
+      !text.trim()
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid request data"
+      });
+      return;
+    }
+
+    const result = await messageService.editMessage(
+      chatId,
+      messageId,
+      senderId,
+      text.trim()
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Message updated successfully",
+      data: result
+    });
+
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Something went wrong";
+
+    const statusCode =
+      message === "Message not found" ? 404 :
+      message === "You are not a member of this chat" ||
+      message === "You can only edit your own messages" ? 403 : 400;
+
+    res.status(statusCode).json({
+      success: false,
+      message
+    });
+  }
+};
+
+
+export const deleteMessageController = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { chatId, messageId } = req.params;
+    const { senderId } = req.body;
+
+    if (
+            typeof chatId !== "string" ||
+            !chatId.trim() ||
+            typeof messageId !== "string" ||
+            !messageId.trim() ||
+      typeof senderId !== "string"
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid request data"
+      });
+      return;
+    }
+
+    const result = await messageService.deleteMessage(
+      chatId,
+      messageId,
+      senderId
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Message deleted successfully",
+      data: result
+    });
+
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Something went wrong";
+
+    const statusCode =
+      message === "Message not found" ? 404 :
+      message === "You are not a member of this chat" ||
+      message === "You can only delete your own messages" ? 403 : 400;
+
+    res.status(statusCode).json({
+      success: false,
+      message
+    });
+  }
+};

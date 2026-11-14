@@ -3,7 +3,9 @@ import { Router } from "express";
 import {
     sendChatMessage, getChatMessages,
     readMessage,
-    lastSeen
+    lastSeen,
+    editMessageController,
+    deleteMessageController
 } from "../controllers/message.controller";
 
 
@@ -22,5 +24,15 @@ router.post(
 );
 
 router.post("/:chatId/lastseen", lastSeen);
+
+router.put(
+  "/:chatId/message/:messageId/edit",
+  editMessageController
+);
+
+router.delete(
+  "/:chatId/message/:messageId/delete",
+  deleteMessageController
+);
 
 export default router;

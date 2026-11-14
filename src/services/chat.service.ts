@@ -75,3 +75,57 @@ export async function createOrGetChat(
         client.release();
     }
 }
+
+
+export const createGroupChat = async (
+  groupName: string,
+  createdBy: string,
+  members: string[]
+) => {
+  const client = await pool.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const allMembers = [...new Set([...members, createdBy])];
+
+    const usersResult = await client.query(
+      `SELECT id FROM users WHERE id = ANY($1::bigint[])`,
+      [allMembers]
+    );
+
+    if (usersResult.rows.length !== allMembers.length) {
+      throw new Error("One or more users do not exist");
+    }
+
+    const groupResult = await client.query(
+      `INSERT INTO chats (chat_type, group_name, created_by)
+       VALUES ($1, $2, $3)
+       RETURNING id, chat_type, group_name, created_by, created_at`,
+      ["group", groupName, createdBy]
+    );
+
+    const chat = groupResult.rows[0];
+
+    for (const userId of allMembers) {
+      await client.query(
+        `INSERT INTO chat_members (chat_id, user_id)
+         VALUES ($1, $2)`,
+        [chat.id, userId]
+      );
+    }
+
+    await client.query("COMMIT");
+
+    return {
+      chatId: String(chat.id),
+      groupName: chat.group_name,
+      members: allMembers
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+};

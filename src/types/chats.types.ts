@@ -24,3 +24,14 @@ export interface ChatMessage {
     text: string;
     timestamp: FirebaseFirestore.Timestamp;
 }
+
+export interface CreateGroupChatRequest {
+  groupName: string;
+  createdBy: string;
+  members: string[];
+}
+
+export interface EditMessageRequest {
+  senderId: string;
+  text: string;
+}
